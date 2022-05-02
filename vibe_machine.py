@@ -1,19 +1,22 @@
 import cv2
+import os
 import sys
 import signal
 from spotify import SpotifyManager, get_mood
-from vibe_light import VibeLight, Visualizer
+from vibe_light import VibeLight
+from visualizer.run_FFT_analyzer import run_FFT_analyzer
 
 music = SpotifyManager()
 
 light = VibeLight()
 
-# face detection code based on https://github.com/shantnu/PyEng
-def webcam_face_detect(video_mode, nogui = False, cascasdepath = "face_cascade.xml"):
+# face detection tutorial based on https://github.com/shantnu/PyEng
+def webcam_face_detect(nogui = False, cascasdepath = "face_cascade.xml"):
+    global light
 
     face_cascade = cv2.CascadeClassifier(cascasdepath)
 
-    video_capture = cv2.VideoCapture(video_mode)
+    video_capture = cv2.VideoCapture(0)
     num_faces = 0
 
 
@@ -45,8 +48,9 @@ def webcam_face_detect(video_mode, nogui = False, cascasdepath = "face_cascade.x
                 break
 
         music.change_playback(num_faces)
-        mood = get_mood(num_faces)
-        light.set_mood(mood)
+        if (light.is_on):
+            mood = get_mood(num_faces)
+            light.set_mood(mood)
 
 
     video_capture.release()
@@ -59,11 +63,20 @@ def handler(signum, frame):
     exit()
  
 
+def main():
+    if len(sys.argv) < 2:
+        light.start()
+
+    webcam_face_detect()
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, handler)
-
-    if len(sys.argv) < 2:
-        video_mode= 0
+    child_pid = os.fork()
+    if child_pid == 0:
+        # new proc
+        # run in a new thread
+        if len(sys.argv) >= 2 and sys.argv[1] == 'v':
+            run_FFT_analyzer()
     else:
-        video_mode = sys.argv[1]
-    webcam_face_detect(video_mode)
+        # orig proc  
+        main()

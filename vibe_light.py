@@ -18,7 +18,11 @@ color_map = {
 
 class VibeLight:
     def __init__(self):
+        self.is_on = False
+
+    def start(self):
         pygame.init()
+        self.is_on = True
         self.screen = pygame.display.set_mode(screen_size)
 
     def set_mood(self, mood):
